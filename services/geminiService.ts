@@ -52,9 +52,9 @@ export async function analyzeImageForMetrics(base64Image: string): Promise<{ hei
 Follow this process:
 1.  **Identify the person:** Find the adult person in the image. If no person is found, the image is unclear, or the person is a child, set 'analysisSuccess' to false and provide a reason.
 2.  **Estimate with scale:**
-    *   **High Accuracy:** Look for a standard A4 or Letter size paper near the person. If found, use it as a scale to get a precise estimate. Set 'accuracy' to 'high'.
-    *   **Medium Accuracy:** If no paper is found, look for other common objects with known sizes (like a door, a chair, a smartphone). Use that object as a scale. Set 'accuracy' to 'medium'.
-    *   **Low Accuracy:** If no usable reference objects are found, make an estimate based on visual cues and human proportions relative to the environment. This will be a rough guess. Set 'accuracy' to 'low'.
+    *   **High Accuracy:** Look for a standard A4 or Letter size paper near the person's feet. If found, use it as a precise scale. Set 'accuracy' to 'high'.
+    *   **Medium Accuracy (Smart Estimation):** If no paper is found, act as a photogrammetry expert. Analyze the scene for common objects to establish scale. For example: a standard interior door is ~203 cm tall, a light switch is typically ~122 cm from the floor, and a standard chair seat is ~45 cm high. Use these environmental cues to create a plausible scale. Set 'accuracy' to 'medium'.
+    *   **Low Accuracy:** If no usable reference objects are found, make a rough estimate based on visual cues and general human proportions relative to the visible environment. Set 'accuracy' to 'low'.
 3.  **Provide the result:** Respond with the JSON object containing your estimates.
 
 **RULES:**

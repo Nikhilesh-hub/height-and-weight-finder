@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AnalysisResult } from '../types';
 import { InfoIcon } from './icons';
+import { Suggestions } from './Suggestions';
 
 interface ResultDisplayProps {
   result: AnalysisResult;
@@ -29,8 +30,25 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, onReset })
   };
   const currentAccuracy = accuracyInfo[accuracy];
 
+  const bmiMarkerPosition = () => {
+      let position = 0;
+      if (bmi < 18.5) {
+          position = (bmi / 18.5) * 25;
+      } else if (bmi < 25) {
+          position = 25 + ((bmi - 18.5) / 6.5) * 25;
+      } else if (bmi < 30) {
+          position = 50 + ((bmi - 25) / 5) * 25;
+      } else {
+          // Cap visualization at a BMI of 40 for a reasonable scale
+          position = 75 + Math.min(((bmi - 30) / 10), 1) * 25;
+      }
+      // Clamp between 2% and 98% to keep marker visually within the bar
+      return Math.max(2, Math.min(position, 98));
+  };
+
+
   return (
-    <div className="p-4 animate-fade-in flex flex-col items-center w-full">
+    <div className="p-4 animate-fade-in flex flex-col items-center w-full max-w-lg mx-auto">
         <h2 className="text-3xl font-bold text-white mb-6 text-center">Your Results</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 w-full">
@@ -44,6 +62,33 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, onReset })
             <p className="text-xl font-semibold" style={{ color: color }}>
                {category}
             </p>
+            
+            <div className="w-full mt-4 pt-4 relative">
+                <div className="h-3 w-full flex rounded-full overflow-hidden">
+                    <div className="w-1/4 bg-[#3b82f6]"></div>
+                    <div className="w-1/4 bg-[#22c55e]"></div>
+                    <div className="w-1/4 bg-[#f97316]"></div>
+                    <div className="w-1/4 bg-[#ef4444]"></div>
+                </div>
+                <div 
+                    className="absolute top-0 h-full flex flex-col items-center transition-all duration-500 -translate-x-1/2"
+                    style={{ left: `${bmiMarkerPosition()}%` }}
+                    title={`Your BMI: ${bmi.toFixed(1)}`}
+                >
+                    <div style={{
+                        width: 0,
+                        height: 0,
+                        borderLeft: '6px solid transparent',
+                        borderRight: '6px solid transparent',
+                        borderTop: '8px solid white',
+                    }}></div>
+                </div>
+                 <div className="w-full flex justify-between text-xs text-gray-400 mt-1 px-[12.5%]">
+                    <span>18.5</span>
+                    <span>25</span>
+                    <span>30</span>
+                </div>
+            </div>
         </div>
         
         {currentAccuracy && (
@@ -57,10 +102,12 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, onReset })
                 </div>
             </div>
         )}
+        
+        <Suggestions category={category} />
 
         <button
             onClick={onReset}
-            className="bg-cyan-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-cyan-500 transition-colors"
+            className="bg-cyan-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-cyan-500 transition-colors mt-6"
         >
             Analyze Another Image
         </button>

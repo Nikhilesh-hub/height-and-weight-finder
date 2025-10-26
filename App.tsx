@@ -83,7 +83,7 @@ const App: React.FC = () => {
         </div>
         <p className="text-lg text-gray-400">Get AI-powered height & weight estimates from a single image.</p>
         <p className="text-sm text-amber-400/80 mt-2 max-w-2xl mx-auto">
-            For best results, take a full-body photo with a standard A4 or Letter paper on the floor by your feet for scale.
+            The AI can estimate metrics from just your photo. For the <strong>highest accuracy</strong>, you can place a standard A4 or Letter paper on the floor for scale.
         </p>
       </header>
 
