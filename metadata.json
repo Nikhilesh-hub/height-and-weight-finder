@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Body Metrics Vision",
+  "description": "An application that uses AI to estimate height and weight from an image.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
