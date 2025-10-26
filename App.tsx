@@ -22,10 +22,10 @@ const App: React.FC = () => {
     setMode('loading');
     setError(null);
     try {
-      const { heightCm, weightKg } = await analyzeImageForMetrics(base64Image);
+      const { heightCm, weightKg, accuracy } = await analyzeImageForMetrics(base64Image);
       const bmi = calculateBMI(heightCm, weightKg);
       const categoryInfo = getBmiCategory(bmi);
-      setResult({ heightCm, weightKg, bmi, ...categoryInfo });
+      setResult({ heightCm, weightKg, bmi, accuracy, ...categoryInfo });
       setMode('result');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
