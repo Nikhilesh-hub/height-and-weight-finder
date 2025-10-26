@@ -47,31 +47,21 @@ export async function analyzeImageForMetrics(base64Image: string): Promise<{ hei
     };
 
     const textPart = {
-        text: `Your task is to perform an anthropometric analysis to estimate the person's height and weight from the provided image.
+        text: `Your task is to estimate the height and weight of the person in the image. You MUST provide an estimate, even if it's a rough one. Do NOT fail if a reference object is missing.
 
-**ACCURACY HIERARCHY:**
-Your primary goal is to achieve the highest accuracy possible by following these steps in order:
+Follow this process:
+1.  **Identify the person:** Find the adult person in the image. If no person is found, the image is unclear, or the person is a child, set 'analysisSuccess' to false and provide a reason.
+2.  **Estimate with scale:**
+    *   **High Accuracy:** Look for a standard A4 or Letter size paper near the person. If found, use it as a scale to get a precise estimate. Set 'accuracy' to 'high'.
+    *   **Medium Accuracy:** If no paper is found, look for other common objects with known sizes (like a door, a chair, a smartphone). Use that object as a scale. Set 'accuracy' to 'medium'.
+    *   **Low Accuracy:** If no usable reference objects are found, make an estimate based on visual cues and human proportions relative to the environment. This will be a rough guess. Set 'accuracy' to 'low'.
+3.  **Provide the result:** Respond with the JSON object containing your estimates.
 
-1.  **HIGH ACCURACY (Primary Method):**
-    *   Search for a standard A4 (21.0cm x 29.7cm) or US Letter (21.6cm x 27.9cm) paper on the floor near the person.
-    *   If found, use its known dimensions as a precise scale reference to estimate height and weight. The accuracy for this method is 'high'.
-
-2.  **MEDIUM ACCURACY (Fallback Method):**
-    *   If no A4/Letter paper is found, look for other common objects with relatively standard sizes that can be used for scale (e.g., a standard interior door height ~203cm, a soda can height ~12.2cm).
-    *   If you use a fallback object, your estimation will have 'medium' accuracy.
-
-3.  **LOW ACCURACY (Last Resort):**
-    *   If no reliable reference object can be identified, perform a rough estimation based on visual cues, the environment, and general human proportions.
-    *   Acknowledge that this is a very rough estimate. The accuracy for this method is 'low'.
-
-**RESPONSE FORMAT:**
--   **analysisSuccess:** Set to \`true\` if you can provide any estimation (high, medium, or low accuracy). Set to \`false\` only if no person is detected, the person is a child, or the image is completely unusable.
--   **heightCm:** Your estimated height in centimeters.
--   **weightKg:** Your estimated weight in kilograms.
--   **accuracy:** A string: 'high', 'medium', or 'low'.
--   **reason:** If \`analysisSuccess\` is \`false\`, provide a reason ('no_person_detected', 'child_detected', 'image_unclear'). This field is optional if successful.
-
-**CRITICAL:** Do not fail the analysis just because the A4/Letter paper is missing. Use the fallback methods. Only fail if the image is fundamentally unusable for any level of estimation.`
+**RULES:**
+- You MUST ALWAYS return a valid JSON object matching the schema.
+- 'analysisSuccess' should be 'true' as long as you can provide any estimate (high, medium, or low accuracy).
+- Only set 'analysisSuccess' to 'false' for the specific failure reasons: 'no_person_detected', 'child_detected', 'image_unclear'.
+- The absence of a reference object is NOT a failure condition. You must fall back to a lower accuracy estimation.`
     };
 
     try {
