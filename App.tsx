@@ -5,7 +5,7 @@ import { CameraInput } from './components/CameraInput';
 import { analyzeImageForMetrics } from './services/geminiService';
 import { calculateBMI, getBmiCategory } from './utils/bmi';
 import type { AnalysisResult } from './types';
-import { LogoIcon, CameraIcon, UploadIcon, SpinnerIcon } from './components/icons';
+import { LogoIcon, CameraIcon, UploadIcon, SpinnerIcon, PaperIcon, SparklesIcon, ArrowLeftIcon } from './components/icons';
 
 type AppMode = 'select' | 'upload' | 'camera' | 'loading' | 'result';
 
@@ -13,16 +13,23 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>('select');
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [referenceChoice, setReferenceChoice] = useState<'yes' | 'no' | null>(null);
   
   const handleStart = (selectedMode: 'upload' | 'camera') => {
     setMode(selectedMode);
   };
 
+  const handleReferenceChoice = (choice: 'yes' | 'no') => {
+    setReferenceChoice(choice);
+  };
+
   const handleAnalysis = useCallback(async (base64Image: string) => {
+    if (!referenceChoice) return;
     setMode('loading');
     setError(null);
     try {
-      const { heightCm, weightKg, accuracy } = await analyzeImageForMetrics(base64Image);
+      const hasReference = referenceChoice === 'yes';
+      const { heightCm, weightKg, accuracy } = await analyzeImageForMetrics(base64Image, hasReference);
       const bmi = calculateBMI(heightCm, weightKg);
       const categoryInfo = getBmiCategory(bmi);
       setResult({ heightCm, weightKg, bmi, accuracy, ...categoryInfo });
@@ -31,29 +38,56 @@ const App: React.FC = () => {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
       setMode('select');
     }
-  }, []);
+  }, [referenceChoice]);
   
   const handleReset = () => {
     setResult(null);
     setError(null);
+    setReferenceChoice(null);
     setMode('select');
   };
 
   const renderContent = () => {
     switch (mode) {
       case 'select':
-        return (
-          <div className="w-full p-4 flex flex-col sm:flex-row gap-6 items-center justify-center animate-fade-in">
-             <button onClick={() => handleStart('upload')} className="w-full sm:w-60 h-60 bg-gray-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 hover:border-cyan-500 border-2 border-transparent transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
-                <UploadIcon className="w-16 h-16 text-gray-400 mb-2"/>
-                <p className="text-xl font-semibold text-white">Upload Image</p>
-             </button>
-             <button onClick={() => handleStart('camera')} className="w-full sm:w-60 h-60 bg-gray-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 hover:border-cyan-500 border-2 border-transparent transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
-                <CameraIcon className="w-16 h-16 text-gray-400 mb-2"/>
-                <p className="text-xl font-semibold text-white">Use Camera</p>
-             </button>
-          </div>
-        );
+        if (referenceChoice === null) {
+          return (
+            <div className="w-full p-4 flex flex-col items-center justify-center animate-fade-in text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">Want higher accuracy?</h2>
+              <p className="text-gray-400 mb-6 max-w-xs">Using a standard A4 or Letter paper as a reference object gives the best results.</p>
+              <div className="w-full flex flex-col sm:flex-row gap-6 items-center justify-center">
+                <button onClick={() => handleReferenceChoice('yes')} className="w-full sm:w-60 h-60 bg-gray-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 hover:border-cyan-500 border-2 border-transparent transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 p-4">
+                    <PaperIcon className="w-16 h-16 text-gray-400 mb-2"/>
+                    <p className="text-xl font-semibold text-white">Yes, I'll use paper</p>
+                    <p className="text-sm font-normal text-green-400">(High Accuracy)</p>
+                </button>
+                <button onClick={() => handleReferenceChoice('no')} className="w-full sm:w-60 h-60 bg-gray-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 hover:border-cyan-500 border-2 border-transparent transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 p-4">
+                    <SparklesIcon className="w-16 h-16 text-gray-400 mb-2"/>
+                    <p className="text-xl font-semibold text-white">No, just estimate</p>
+                    <p className="text-sm font-normal text-yellow-400">(Medium Accuracy)</p>
+                </button>
+              </div>
+            </div>
+          );
+        } else {
+            return (
+              <div className="w-full p-4 flex flex-col gap-6 items-center justify-center animate-fade-in">
+                <button onClick={() => setReferenceChoice(null)} className="absolute top-6 left-6 text-gray-400 hover:text-white transition-colors">
+                    <ArrowLeftIcon />
+                </button>
+                <div className="flex flex-col sm:flex-row gap-6 items-center justify-center">
+                    <button onClick={() => handleStart('upload')} className="w-full sm:w-60 h-60 bg-gray-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 hover:border-cyan-500 border-2 border-transparent transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
+                        <UploadIcon className="w-16 h-16 text-gray-400 mb-2"/>
+                        <p className="text-xl font-semibold text-white">Upload Image</p>
+                    </button>
+                    <button onClick={() => handleStart('camera')} className="w-full sm:w-60 h-60 bg-gray-800 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-700 hover:border-cyan-500 border-2 border-transparent transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
+                        <CameraIcon className="w-16 h-16 text-gray-400 mb-2"/>
+                        <p className="text-xl font-semibold text-white">Use Camera</p>
+                    </button>
+                </div>
+              </div>
+            );
+        }
       case 'upload':
         return <ImageInput onAnalyze={handleAnalysis} onBack={() => setMode('select')} />;
       case 'camera':
