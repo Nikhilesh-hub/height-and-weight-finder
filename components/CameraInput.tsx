@@ -24,61 +24,76 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
     };
 
     const startCamera = async () => {
-      stopStream(); // Ensure any existing stream is stopped
-      setError(null);
-      setIsCameraInitializing(true);
+        stopStream();
+        setError(null);
+        setIsCameraInitializing(true);
 
-      // This is the robust way to request a camera.
-      // We check for 'facingMode' support before trying to use it.
-      const supported = navigator.mediaDevices.getSupportedConstraints();
-      const constraints: MediaStreamConstraints = { video: true };
-      if (supported.facingMode) {
-        constraints.video = { facingMode: { ideal: 'environment' } };
-      }
-
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        streamRef.current = mediaStream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-          videoRef.current.onloadeddata = () => {
-            setIsCameraInitializing(false);
-          };
-        } else {
-            setIsCameraInitializing(false);
-        }
-      } catch (err) {
-        let errorMessage = "An unknown camera error occurred. Please ensure your camera is not in use by another application and try again.";
-        if (err instanceof DOMException) {
-            switch (err.name) {
-                case 'NotFoundError':
-                case 'DevicesNotFoundError':
-                    errorMessage = "No camera found on your device. Please ensure a camera is connected and enabled.";
-                    break;
-                case 'NotAllowedError':
-                case 'PermissionDeniedError':
-                    errorMessage = "Camera access was denied. To use this feature, please grant camera permissions in your browser settings.";
-                    break;
-                case 'OverconstrainedError':
-                case 'ConstraintNotSatisfiedError':
-                    errorMessage = "Your device's camera does not support the required settings.";
-                    break;
-                case 'NotReadableError':
-                case 'TrackStartError':
-                    errorMessage = "Your camera might be in use by another application. Please close it and try again.";
-                    break;
-                 default:
-                    console.error('Unhandled Camera DOMException:', err.name, err.message);
-                    break;
+        const setStream = (mediaStream: MediaStream) => {
+            streamRef.current = mediaStream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = mediaStream;
+                videoRef.current.onloadeddata = () => {
+                    setIsCameraInitializing(false);
+                };
+            } else {
+                setIsCameraInitializing(false);
             }
-        } else {
-             console.error('Generic camera error:', err);
+        };
+
+        const handleError = (err: unknown) => {
+            let errorMessage = "An unknown camera error occurred. Please ensure your camera is not in use by another application and try again.";
+            if (err instanceof DOMException) {
+                switch (err.name) {
+                    case 'NotFoundError':
+                    case 'DevicesNotFoundError':
+                        errorMessage = "No camera found on your device. Please ensure a camera is connected and enabled.";
+                        break;
+                    case 'NotAllowedError':
+                    case 'PermissionDeniedError':
+                        errorMessage = "Camera access was denied. To use this feature, please grant camera permissions in your browser settings.";
+                        break;
+                    case 'OverconstrainedError':
+                    case 'ConstraintNotSatisfiedError':
+                        errorMessage = "Your device's camera does not support the required settings.";
+                        break;
+                    case 'NotReadableError':
+                    case 'TrackStartError':
+                        errorMessage = "Your camera might be in use by another application. Please close it and try again.";
+                        break;
+                    default:
+                        console.error('Unhandled Camera DOMException:', err.name, err.message);
+                        break;
+                }
+            } else {
+                console.error('Generic camera error:', err);
+            }
+            setError(errorMessage);
+            setIsCameraInitializing(false);
+        };
+
+        const idealConstraints: MediaStreamConstraints = { video: { facingMode: { ideal: 'environment' } } };
+        const fallbackConstraints: MediaStreamConstraints = { video: true };
+
+        try {
+            // 1. Try ideal constraints (rear camera)
+            const mediaStream = await navigator.mediaDevices.getUserMedia(idealConstraints);
+            setStream(mediaStream);
+        } catch (err) {
+            // 2. If it fails with a constraint error, try the fallback
+            if (err instanceof DOMException && (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError')) {
+                console.warn("Could not get environment camera, falling back to default.");
+                try {
+                    const mediaStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+                    setStream(mediaStream);
+                } catch (fallbackErr) {
+                    // 3. If fallback also fails, handle the error
+                    handleError(fallbackErr);
+                }
+            } else {
+                // 4. If it's a different error (e.g., permissions), handle it directly
+                handleError(err);
+            }
         }
-        
-        setError(errorMessage);
-        setIsCameraInitializing(false);
-      }
     };
 
     if (!capturedImage) {
@@ -92,14 +107,24 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
   }, [capturedImage]);
 
   const handleCapture = () => {
-    if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2) {
+    if (videoRef.current && canvasRef.current && streamRef.current && videoRef.current.readyState >= 2) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
-      context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-      const dataUrl = canvas.toDataURL('image/jpeg');
+      
+      if (context) {
+        const settings = streamRef.current.getVideoTracks()[0].getSettings();
+        // Flip the image horizontally if it's a user-facing camera to match the preview
+        if (settings.facingMode === 'user') {
+            context.translate(video.videoWidth, 0);
+            context.scale(-1, 1);
+        }
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+      }
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95); // Explicitly set high quality
       const base64 = dataUrl.split(',')[1];
       setCapturedImage(base64);
     }
@@ -139,6 +164,8 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
                     ref={videoRef} 
                     autoPlay 
                     playsInline 
+                    // Mirror the video preview if it's a front-facing camera
+                    style={{ transform: streamRef.current?.getVideoTracks()[0]?.getSettings()?.facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)' }}
                     className={`w-full h-full object-cover ${capturedImage || isCameraInitializing ? 'hidden' : 'block'}`}
                 />
                 {!capturedImage && (
