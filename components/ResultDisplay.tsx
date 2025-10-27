@@ -107,7 +107,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, onReset })
 
         <button
             onClick={onReset}
-            className="bg-cyan-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-cyan-500 transition-colors mt-6"
+            className="w-full sm:w-auto bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-cyan-500 transition-colors mt-6"
         >
             Analyze Another Image
         </button>

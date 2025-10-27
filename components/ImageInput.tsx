@@ -106,7 +106,7 @@ export const ImageInput: React.FC<ImageInputProps> = ({ onAnalyze, onBack }) => 
                 </div>
             ) : (
                 <div 
-                    className={`w-full max-w-sm h-60 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-cyan-500 bg-gray-700/50' : 'border-gray-600 hover:border-cyan-600'}`}
+                    className={`w-full max-w-sm h-72 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-cyan-500 bg-gray-700/50' : 'border-gray-600 hover:border-cyan-600'}`}
                     onClick={() => fileInputRef.current?.click()}
                     onDragEnter={(e) => handleDragEvent(e, true)}
                     onDragLeave={(e) => handleDragEvent(e, false)}

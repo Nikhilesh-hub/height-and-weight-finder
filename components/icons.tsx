@@ -63,3 +63,53 @@ export const SparklesIcon: React.FC<{className?: string}> = ({ className = "w-16
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
     </svg>
 );
+
+export const PoseIcon: React.FC<{className?: string}> = ({ className = "w-16 h-16 text-gray-400" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v10m-8-5h16M12 21l-3-4m3 4l3-4" />
+    </svg>
+);
+
+export const CheckIcon: React.FC<{className?: string}> = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+    </svg>
+);
+
+export const PaperInstructionIcon: React.FC<{className?: string}> = ({ className="w-24 h-24 text-gray-500" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
+        {/* Person */}
+        <circle cx="32" cy="14" r="5" />
+        <path d="M32 24v18" />
+        <path d="M22 60l10-18" />
+        <path d="M42 60l-10-18" />
+        <path d="M20 32h24" />
+        {/* Paper */}
+        <path d="M18 54 l6 4 l12 -6 l-6 -4 Z" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+    </svg>
+);
+
+export const PoseInstructionIcon: React.FC<{className?: string}> = ({ className="w-24 h-24 text-gray-500" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="32" cy="14" r="5" />
+        <path d="M32 24v18" />
+        <path d="M22 60l10-18" />
+        <path d="M42 60l-10-18" />
+        <path d="M4 32h56" />
+    </svg>
+);
+
+export const QuickSnapInstructionIcon: React.FC<{className?: string}> = ({ className="w-24 h-24 text-gray-500" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
+        {/* Person */}
+        <circle cx="24" cy="18" r="4" />
+        <path d="M24 26v14" />
+        <path d="M16 54l8-14" />
+        <path d="M32 54l-8-14" />
+        <path d="M16 36h16" />
+        {/* Door */}
+        <rect x="42" y="8" width="14" height="48" strokeDasharray="4 2" />
+        <circle cx="53" cy="32" r="1" fill="currentColor"/>
+    </svg>
+);

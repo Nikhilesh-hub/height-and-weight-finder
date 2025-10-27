@@ -37,7 +37,7 @@ const responseSchema = {
 };
 
 
-export async function analyzeImageForMetrics(base64Image: string, hasReference: boolean): Promise<{ heightCm: number; weightKg: number; accuracy: 'high' | 'medium' | 'low' }> {
+export async function analyzeImageForMetrics(base64Image: string, hasReference: boolean, estimationMethod: 'pose' | 'environment' | null): Promise<{ heightCm: number; weightKg: number; accuracy: 'high' | 'medium' | 'low' }> {
     
     const imagePart = {
         inlineData: {
@@ -46,24 +46,29 @@ export async function analyzeImageForMetrics(base64Image: string, hasReference: 
         },
     };
 
-    const highAccuracyInstruction = `A standard A4 or Letter size paper IS present on the floor near the person's feet. You MUST use it as a precise scale to determine the person's height. Set 'accuracy' to 'high'.`;
+    let estimationInstruction: string;
 
-    const mediumLowAccuracyInstruction = `You must estimate the person's height and weight without a dedicated reference object. Act as a photogrammetry expert. Analyze the scene for common objects to establish scale. For example: a standard interior door is ~203 cm tall, a light switch is typically ~122 cm from the floor, and a standard chair seat is ~45 cm high. Use these environmental cues to create a plausible scale. If usable cues are present, set 'accuracy' to 'medium'. If no reference objects are found, make a rough estimate based on visual cues and general human proportions. In this case, set 'accuracy' to 'low'.`;
+    if (hasReference) {
+        estimationInstruction = `A standard A4 or Letter size paper IS present on the floor near the person's feet. You MUST use it as a precise scale to determine the person's height. Set 'accuracy' to 'high'.`;
+    } else if (estimationMethod === 'pose') {
+        estimationInstruction = `The user has taken this photo in a "Guided Pose". The person's arms are outstretched to their sides. You MUST use the principle that an adult's arm span (fingertip to fingertip) is approximately equal to their height. Measure the arm span to get a height estimate. Based on this reliable anatomical proportion, set 'accuracy' to 'medium'. If the pose is not clear or incorrect, fall back to the environmental estimation method and set accuracy to 'low'.`;
+    } else { // 'environment'
+        estimationInstruction = `You must estimate the person's height and weight without a dedicated reference object. Act as a photogrammetry expert. Analyze the scene for common objects to establish scale (e.g., door height ~203cm, light switch ~122cm from floor). Use these environmental cues to create a plausible scale. If usable cues are present, set 'accuracy' to 'medium'. If no reference objects are found, make a rough estimate based on visual cues and general human proportions and set 'accuracy' to 'low'.`;
+    }
+
 
     const textPart = {
         text: `Your task is to estimate the height and weight of the person in the image. You MUST provide an estimate.
 
 Follow this process:
 1.  **Identify the person:** Find the adult person in the image. If no person is found, the image is unclear, or the person is a child, set 'analysisSuccess' to false and provide a reason.
-2.  **Estimate with scale:**
-    *   ${hasReference ? highAccuracyInstruction : mediumLowAccuracyInstruction}
+2.  **Estimate with scale:** ${estimationInstruction}
 3.  **Provide the result:** Respond with the JSON object containing your estimates.
 
 **RULES:**
 - You MUST ALWAYS return a valid JSON object matching the schema.
 - 'analysisSuccess' should be 'true' as long as you can provide any estimate (high, medium, or low accuracy).
-- Only set 'analysisSuccess' to 'false' for the specific failure reasons: 'no_person_detected', 'child_detected', 'image_unclear'.
-- The absence of a reference object is NOT a failure condition if the user did not state one would be present.`
+- Only set 'analysisSuccess' to 'false' for the specific failure reasons: 'no_person_detected', 'child_detected', 'image_unclear'.`
     };
 
     try {
