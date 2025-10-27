@@ -9,34 +9,90 @@ interface CameraInputProps {
 export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isCameraInitializing, setIsCameraInitializing] = useState(true);
 
+  // Effect to manage camera stream based on capture state
   useEffect(() => {
-    const startCamera = async () => {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      } catch (err) {
-        setError("Camera access denied. To use this feature, please grant camera permissions for this site in your browser settings and refresh the page.");
-        console.error('Camera access error:', err);
+    const stopStream = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
     };
+
+    const startCamera = async () => {
+      stopStream(); // Ensure any existing stream is stopped
+      setError(null);
+      setIsCameraInitializing(true);
+
+      // This is the robust way to request a camera.
+      // We check for 'facingMode' support before trying to use it.
+      const supported = navigator.mediaDevices.getSupportedConstraints();
+      const constraints: MediaStreamConstraints = { video: true };
+      if (supported.facingMode) {
+        constraints.video = { facingMode: { ideal: 'environment' } };
+      }
+
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = mediaStream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.onloadeddata = () => {
+            setIsCameraInitializing(false);
+          };
+        } else {
+            setIsCameraInitializing(false);
+        }
+      } catch (err) {
+        let errorMessage = "An unknown camera error occurred. Please ensure your camera is not in use by another application and try again.";
+        if (err instanceof DOMException) {
+            switch (err.name) {
+                case 'NotFoundError':
+                case 'DevicesNotFoundError':
+                    errorMessage = "No camera found on your device. Please ensure a camera is connected and enabled.";
+                    break;
+                case 'NotAllowedError':
+                case 'PermissionDeniedError':
+                    errorMessage = "Camera access was denied. To use this feature, please grant camera permissions in your browser settings.";
+                    break;
+                case 'OverconstrainedError':
+                case 'ConstraintNotSatisfiedError':
+                    errorMessage = "Your device's camera does not support the required settings.";
+                    break;
+                case 'NotReadableError':
+                case 'TrackStartError':
+                    errorMessage = "Your camera might be in use by another application. Please close it and try again.";
+                    break;
+                 default:
+                    console.error('Unhandled Camera DOMException:', err.name, err.message);
+                    break;
+            }
+        } else {
+             console.error('Generic camera error:', err);
+        }
+        
+        setError(errorMessage);
+        setIsCameraInitializing(false);
+      }
+    };
+
     if (!capturedImage) {
-        startCamera();
+      startCamera();
+    } else {
+      stopStream();
     }
 
-    return () => {
-      stream?.getTracks().forEach(track => track.stop());
-    };
-  }, [capturedImage, stream]);
+    // Cleanup function to stop the stream when the component unmounts
+    return stopStream;
+  }, [capturedImage]);
 
   const handleCapture = () => {
-    if (videoRef.current && canvasRef.current) {
+    if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
@@ -46,12 +102,12 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
       const dataUrl = canvas.toDataURL('image/jpeg');
       const base64 = dataUrl.split(',')[1];
       setCapturedImage(base64);
-      stream?.getTracks().forEach(track => track.stop());
     }
   };
 
   const handleRetake = () => {
     setCapturedImage(null);
+    setIsCameraInitializing(true);
   };
   
   const handleAnalyze = () => {
@@ -67,7 +123,7 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
        </button>
        <h2 className="text-2xl font-bold text-white">{capturedImage ? "Preview" : "Live Camera"}</h2>
        
-       <div className="w-full max-w-sm aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden relative">
+       <div className="w-full max-w-sm aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden relative flex items-center justify-center">
         {error ? (
           <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
             <CameraOffIcon className="w-16 h-16 text-gray-600 mb-4" />
@@ -76,7 +132,15 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
           </div>
         ) : (
             <>
-                <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover ${capturedImage ? 'hidden' : 'block'}`}></video>
+                {isCameraInitializing && !capturedImage && (
+                    <div className="text-gray-400">Initializing Camera...</div>
+                )}
+                <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    className={`w-full h-full object-cover ${capturedImage || isCameraInitializing ? 'hidden' : 'block'}`}
+                />
                 {!capturedImage && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
                         <UserIcon className="w-full h-full text-white/10" />
@@ -95,7 +159,9 @@ export const CameraInput: React.FC<CameraInputProps> = ({ onAnalyze, onBack }) =
                 <button onClick={handleAnalyze} className="flex-1 bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-cyan-500 transition-colors">Analyze</button>
             </>
         ) : (
-             <button onClick={handleCapture} disabled={!!error} className="w-full bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-cyan-500 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">Capture</button>
+             <button onClick={handleCapture} disabled={!!error || isCameraInitializing} className="w-full bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-cyan-500 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
+                {isCameraInitializing ? 'Starting...' : 'Capture'}
+             </button>
         )}
        </div>
     </div>
